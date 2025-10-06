@@ -4,6 +4,7 @@ from datetime import datetime
 from status_manager import status_manager
 from typing_indicator import typing_indicator
 from group_manager import group_manager
+from message_status import message_status_manager
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
@@ -100,6 +101,38 @@ def customize_group_title(group_id):
     result = group_manager.customize_room_title(group_id, user_id, custom_title)
 
     return jsonify(result)
+
+@app.route('/api/messages/<int:message_id>/delivered', methods=['POST'])
+def mark_message_delivered(message_id):
+    user_id = request.json.get('user_id')
+    result = message_status_manager.mark_as_delivered(message_id, user_id)
+
+    if result:
+        return jsonify(result)
+    return jsonify({'error': 'Failed to update status'}), 400
+
+@app.route('/api/messages/<int:message_id>/read', methods=['POST'])
+def mark_message_read(message_id):
+    user_id = request.json.get('user_id')
+    result = message_status_manager.mark_as_read(message_id, user_id)
+
+    if result:
+        return jsonify(result)
+    return jsonify({'error': 'Failed to update status'}), 400
+
+@app.route('/api/messages/<int:message_id>/status', methods=['GET'])
+def get_message_status(message_id):
+    status = message_status_manager.get_message_status(message_id)
+
+    if status:
+        return jsonify(status)
+    return jsonify({'error': 'Message not found'}), 404
+
+@app.route('/api/rooms/<int:room_id>/message-statuses', methods=['GET'])
+def get_room_message_statuses(room_id):
+    user_id = request.args.get('user_id', type=int)
+    statuses = message_status_manager.get_room_message_statuses(room_id, user_id)
+    return jsonify(statuses)
 
 if __name__ == '__main__':
     with app.app_context():
