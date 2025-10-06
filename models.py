@@ -26,6 +26,10 @@ class Message(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    delivered_at = db.Column(db.DateTime)
+    read_at = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='sent')
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
