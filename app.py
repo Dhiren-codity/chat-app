@@ -5,6 +5,7 @@ from status_manager import status_manager
 from typing_indicator import typing_indicator
 from group_manager import group_manager
 from message_status import message_status_manager
+from profile_manager import profile_manager
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
@@ -133,6 +134,50 @@ def get_room_message_statuses(room_id):
     user_id = request.args.get('user_id', type=int)
     statuses = message_status_manager.get_room_message_statuses(room_id, user_id)
     return jsonify(statuses)
+
+@app.route('/api/profile/<int:user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    profile = profile_manager.get_profile(user_id)
+    if profile:
+        return jsonify(profile)
+    return jsonify({'error': 'User not found'}), 404
+
+@app.route('/api/profile/<int:user_id>/picture', methods=['POST'])
+def upload_profile_picture(user_id):
+    image_data = request.json.get('image_data')
+    filename = request.json.get('filename', 'profile.jpg')
+
+    result = profile_manager.upload_profile_picture(user_id, image_data, filename)
+    if result:
+        return jsonify(result)
+    return jsonify({'error': 'Upload failed'}), 400
+
+@app.route('/api/profile/<int:user_id>/display-name', methods=['PUT'])
+def update_display_name(user_id):
+    display_name = request.json.get('display_name')
+    result = profile_manager.update_display_name(user_id, display_name)
+
+    if result:
+        return jsonify(result)
+    return jsonify({'error': 'Update failed'}), 400
+
+@app.route('/api/profile/<int:user_id>/status', methods=['PUT'])
+def update_status_message(user_id):
+    status_message = request.json.get('status_message')
+    result = profile_manager.update_status_message(user_id, status_message)
+
+    if result:
+        return jsonify(result)
+    return jsonify({'error': 'Update failed'}), 400
+
+@app.route('/api/profile/<int:user_id>/bio', methods=['PUT'])
+def update_bio(user_id):
+    bio = request.json.get('bio')
+    result = profile_manager.update_bio(user_id, bio)
+
+    if result:
+        return jsonify(result)
+    return jsonify({'error': 'Update failed'}), 400
 
 if __name__ == '__main__':
     with app.app_context():
