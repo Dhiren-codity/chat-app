@@ -14,6 +14,11 @@ class User(db.Model):
     rooms = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    profile_picture = db.Column(db.String(500))
+    display_name = db.Column(db.String(100))
+    status_message = db.Column(db.String(200))
+    bio = db.Column(db.Text)
+
     def check_password(self, password):
         return hashlib.sha256(password.encode()).hexdigest() == self.password_hash
 
