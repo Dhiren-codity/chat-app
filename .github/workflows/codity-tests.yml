@@ -1,0 +1,101 @@
+name: Codity AI - Run Generated Tests
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  test-python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
+          # Install test dependencies
+          pip install pytest pytest-cov pytest-asyncio
+          # Fix SQLAlchemy compatibility (downgrade if needed)
+          pip install 'sqlalchemy<2.0.0' 'flask-sqlalchemy>=3.0.0,<3.1.0'
+
+      - name: Run Python tests
+        id: pytest
+        run: |
+          export PYTHONPATH="${{ github.workspace }}:$PYTHONPATH"
+          pytest routes/reactions_test.py -v --tb=short --color=yes
+        continue-on-error: true
+
+      - name: Auto-fix failing tests
+        if: steps.pytest.outcome != 'success' && github.event_name == 'pull_request'
+        id: autofix
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          echo "::notice::Tests failed, running auto-fix with 3 retries..."
+          python3 -m pip install --quiet openai anthropic
+          export PYTHONPATH="${{ github.workspace }}:$PYTHONPATH"
+          python3 test_generation/execution/github_auto_fix.py routes/reactions_test.py
+        continue-on-error: true
+
+      - name: Commit auto-fixed tests
+        if: steps.autofix.outcome == 'success' && github.event_name == 'pull_request'
+        run: |
+          git config user.name "Codity AI"
+          git config user.email "noreply@codity.ai"
+          git add routes/reactions_test.py
+          if git diff --staged --quiet; then
+            echo "::notice::No changes to commit after auto-fix"
+          else
+            git commit -m "🤖 Auto-fix test errors
+
+          Auto-fixed by Codity AI after test failures.
+
+          Co-Authored-By: Codity AI <noreply@codity.ai>"
+            git push || echo "::error::Could not push auto-fixes"
+          fi
+
+      - name: Re-run tests after auto-fix
+        if: steps.autofix.outcome == 'success'
+        id: pytest-rerun
+        run: |
+          export PYTHONPATH="${{ github.workspace }}:$PYTHONPATH"
+          pytest routes/reactions_test.py -v --tb=short --color=yes
+        continue-on-error: false
+
+      - name: Report auto-fix failure
+        if: steps.pytest.outcome != 'success' && steps.autofix.outcome != 'success'
+        run: |
+          echo "::error::Tests failed and auto-fix could not resolve the issues"
+          exit 1
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-results
+          path: |
+            .pytest_cache/
+            test-results/
