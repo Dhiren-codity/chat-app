@@ -1,7 +1,4 @@
-"""
-API routes for message reactions.
-"""
-
+ 
 from flask import Blueprint, request, jsonify
 from reaction_manager import ReactionManager, MessageReaction
 from models import db
@@ -15,7 +12,7 @@ def require_auth(f):
     """Decorator to require authentication."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Simple auth check - assumes user_id is passed in request
+      
         user_id = request.headers.get('X-User-ID') or request.args.get('user_id')
         if not user_id:
             return jsonify({"error": "Authentication required"}), 401
