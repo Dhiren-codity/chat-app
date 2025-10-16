@@ -5,10 +5,14 @@ from status_manager import status_manager
 from typing_indicator import typing_indicator
 from group_manager import group_manager
 from message_status import message_status_manager
+from routes.reactions import reactions_bp
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
 db.init_app(app)
+
+# Register blueprints
+app.register_blueprint(reactions_bp)
 
 @app.route('/api/users/login', methods=['POST'])
 def login():

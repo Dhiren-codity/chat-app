@@ -1,4 +1,3 @@
-from models import db
 
 class GroupManager:
     def __init__(self):
