@@ -111,20 +111,6 @@ def toggle_reaction(user_id):
         return jsonify({"error": f"Failed to toggle reaction: {str(e)}"}), 500
 
 
-@reactions_bp.route('/message/<int:message_id>', methods=['GET'])
-def get_message_reactions(message_id):
-    """Get all reactions for a message, grouped by emoji."""
-    try:
-        reactions = reaction_manager.get_message_reactions(message_id)
-        return jsonify({
-            "success": True,
-            "message_id": message_id,
-            "reactions": reactions
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to get reactions: {str(e)}"}), 500
-
 
 @reactions_bp.route('/user', methods=['GET'])
 @require_auth
