@@ -32,25 +32,25 @@ jobs:
       - name: Run tests
         id: test_run
         continue-on-error: true
-        run: pytest routes/reactions_test.py -v
+        run: pytest test_generation/execution/github_auto_fix_test.py -v
       - name: Auto-fix failing tests
         if: steps.test_run.outcome == 'failure'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           echo "🔧 Tests failed, attempting auto-fix..."
-          python3 test_generation/execution/github_auto_fix.py routes/reactions_test.py
+          python3 test_generation/execution/github_auto_fix.py test_generation/execution/github_auto_fix_test.py
       - name: Re-run tests after auto-fix
         if: steps.test_run.outcome == 'failure'
         id: retest
         continue-on-error: true
-        run: pytest routes/reactions_test.py -v
+        run: pytest test_generation/execution/github_auto_fix_test.py -v
       - name: Commit auto-fixed tests
         if: steps.test_run.outcome == 'failure' && steps.retest.outcome == 'success'
         run: |
           git config user.name "Codity AI"
           git config user.email "bot@codity.ai"
-          git add routes/reactions_test.py
+          git add test_generation/execution/github_auto_fix_test.py
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else

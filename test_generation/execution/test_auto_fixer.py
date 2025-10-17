@@ -1223,21 +1223,33 @@ class TestAutoFixer:
                 failing_tests = []
 
                 for t in test_functions:
-                    # Extract base test name (without class, without parameters)
-                    test_name = t.split("::")[
-                        -1
-                    ]  # Remove class: TestClass::test_foo -> test_foo
-                    base_name = test_name.split("[")[
+                    # Extract full test name with class (if present)
+                    # t looks like: "TestClass::test_method" or "test_function"
+                    file_test_name = t.split("[")[
                         0
-                    ]  # Remove params: test_foo[x] -> test_foo
+                    ]  # Remove params: test_foo[x] -> test_foo (or TestClass::test_foo)
 
                     # Check if this test (or any parametrized version of it) passed
                     matched = False
                     for passing in initial_passing_tests:
-                        passing_base = passing.split("[")[
-                            0
-                        ]  # Get base name of passing test
-                        if base_name == passing_base:
+                        # passing looks like: "routes/file_test.py::TestClass::test_method" or "routes/file_test.py::test_function"
+                        # Extract the test identifier (everything after the file path)
+                        if "::" in passing:
+                            # Split by :: and take everything except the first part (which is the file path)
+                            parts = passing.split("::")
+                            if len(parts) >= 2:
+                                # Join back parts after the file path
+                                # routes/file.py::TestClass::test_method -> TestClass::test_method
+                                passing_test_name = "::".join(parts[1:])
+                            else:
+                                passing_test_name = parts[0]
+                        else:
+                            passing_test_name = passing
+
+                        # Remove parametrization brackets from passing test
+                        passing_base = passing_test_name.split("[")[0]
+
+                        if file_test_name == passing_base:
                             matched = True
                             passing_tests.append(t)
                             logger.info(
@@ -1817,16 +1829,27 @@ Return ONLY the cleaned test code, no explanations:
                 return False, current_code, fix_history
 
         for attempt in range(1, self.max_retries + 1):
+            logger.info(f"")
+            logger.info(f"{'=' * 60}")
+            logger.info(f"🔄 ATTEMPT {attempt}/{self.max_retries}")
+            logger.info(f"{'=' * 60}")
+
             # Write current code to file
             Path(test_file_path).write_text(current_code, encoding="utf-8")
+            logger.info(f"📝 Test file written: {test_file_path}")
+            logger.info(f"   Size: {len(current_code)} chars")
 
             # Run tests
+            logger.info(f"🧪 Running tests...")
             success, stdout, stderr = self.run_tests_and_capture_errors(
                 test_file_path, language
             )
 
             if success:
-                logger.info(f"✅ Tests passed on attempt {attempt}!")
+                logger.info(f"")
+                logger.info(f"{'=' * 60}")
+                logger.info(f"✅ SUCCESS! Tests passed on attempt {attempt}!")
+                logger.info(f"{'=' * 60}")
                 fix_history.append(f"Attempt {attempt}: SUCCESS")
                 return True, current_code, fix_history
 
@@ -1987,30 +2010,40 @@ Return ONLY the cleaned test code, no explanations:
 
             # If this is the last attempt, don't try LLM fix - go straight to nuclear option
             if attempt >= self.max_retries:
-                logger.error(f"Max retries ({self.max_retries}) reached.")
-                logger.warning(
-                    "⚠️ Trying NUCLEAR OPTION: keeping tests that passed in initial run"
+                logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                logger.info(
+                    f"💣 NUCLEAR OPTION: Max retries ({self.max_retries}) reached"
                 )
-                logger.warning(
-                    "   This will keep passing tests and remove failing ones"
+                logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                logger.info(
+                    f"🎯 Strategy: Keep ONLY tests that passed, remove ALL failing tests"
+                )
+                logger.info(f"   This is the most aggressive cleanup option")
+                logger.info(
+                    f"   It ensures 100% pass rate by removing problematic tests"
                 )
 
                 passing_tests = error_info.get("passing", [])
-                logger.info(
-                    f"📊 Nuclear Option Input: {len(passing_tests)} passing tests from error_info"
-                )
-                if passing_tests:
-                    logger.info(
-                        f"✅ Passing tests list (first 20): {passing_tests[:20]}"
-                    )
-                    if len(passing_tests) > 20:
-                        logger.info(f"   ... and {len(passing_tests) - 20} more")
-                else:
-                    logger.warning(f"⚠️ No passing tests found in error_info!")
+                failing_tests = error_info.get("failures", [])
 
+                logger.info(f"📊 Test Summary:")
+                logger.info(f"   • Passing tests: {len(passing_tests)}")
+                logger.info(f"   • Failing tests: {len(failing_tests)}")
                 logger.info(
-                    f"🔧 Calling keep_only_passing_tests with {len(passing_tests)} passing tests..."
+                    f"   • Target result: {len(passing_tests)} tests (100% pass rate)"
                 )
+
+                if passing_tests:
+                    logger.info(f"✅ Passing tests (first 10):")
+                    for i, test in enumerate(passing_tests[:10], 1):
+                        logger.info(f"     {i}. {test}")
+                    if len(passing_tests) > 10:
+                        logger.info(f"     ... and {len(passing_tests) - 10} more")
+                else:
+                    logger.warning(f"⚠️ No passing tests found - this is unusual!")
+                    logger.warning(f"   The test file may have fundamental issues")
+
+                logger.info(f"🔧 Running nuclear option cleanup...")
                 cleaned_code = self.keep_only_passing_tests(
                     test_file_path, language, initial_passing_tests=passing_tests
                 )
@@ -2057,35 +2090,83 @@ Return ONLY the cleaned test code, no explanations:
 
             # Try LLM-based fix only if LLM is available
             if self.llm_client:
-                logger.info(f"🤖 Attempt {attempt}: Requesting LLM fix...")
-                logger.info(
-                    f"   Will ask LLM to fix {len(error_info['errors'])} errors and {len(error_info['failures'])} failures"
-                )
+                logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                logger.info(f"🤖 ATTEMPT {attempt}/{self.max_retries}: LLM-BASED FIX")
+                logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                logger.info(f"📊 Issues to fix:")
+                logger.info(f"   • {len(error_info['errors'])} syntax/import errors")
+                logger.info(f"   • {len(error_info['failures'])} test failures")
+
+                # Show sample errors
+                if error_info["errors"][:3]:
+                    logger.info(f"   Sample errors:")
+                    for i, err in enumerate(error_info["errors"][:3], 1):
+                        logger.info(f"     {i}. {err['type']}: {err['message'][:100]}")
+
+                if error_info["failures"][:3]:
+                    logger.info(f"   Sample failures:")
+                    for i, fail in enumerate(error_info["failures"][:3], 1):
+                        logger.info(f"     {i}. {fail['test_name']}")
 
                 # Build fix prompt for LLM
+                logger.info(f"🔨 Building fix prompt...")
                 prompt = self.build_fix_prompt(
                     current_code, error_info, attempt, source_code
                 )
-
-                logger.info(f"   Prompt size: {len(prompt)} chars")
+                logger.info(f"   ✅ Prompt built: {len(prompt)} chars")
 
                 # Get fixed code from LLM
+                logger.info(f"📤 Sending request to LLM...")
                 fixed_code = self.get_fixed_test_from_llm(prompt, language)
 
                 if not fixed_code:
-                    logger.error(f"❌ Attempt {attempt}: LLM returned no code")
+                    logger.error(
+                        f"❌ LLM returned no code (may have timed out or failed)"
+                    )
+                    logger.error(
+                        f"   Will fall back to nuclear option on final attempt"
+                    )
                     break
 
+                # Check if code actually changed
+                code_changed = fixed_code != current_code
+                logger.info(f"📥 Received LLM response:")
+                logger.info(f"   • Response size: {len(fixed_code)} chars")
+                logger.info(f"   • Original size: {len(current_code)} chars")
                 logger.info(
-                    f"✅ Attempt {attempt}: Got fixed code from LLM ({len(fixed_code)} chars)"
+                    f"   • Code changed: {'✅ YES' if code_changed else '❌ NO (identical)'}"
                 )
-                logger.info(
-                    f"   Code size changed: {len(current_code)} → {len(fixed_code)} chars"
-                )
+
+                if code_changed:
+                    # Count tests before/after
+                    import re
+
+                    original_tests = len(
+                        re.findall(r"^\s*def test_\w+", current_code, re.MULTILINE)
+                    )
+                    fixed_tests = len(
+                        re.findall(r"^\s*def test_\w+", fixed_code, re.MULTILINE)
+                    )
+                    logger.info(f"   • Test count: {original_tests} → {fixed_tests}")
+
+                    if fixed_tests < original_tests:
+                        logger.info(
+                            f"   ⚠️ LLM removed {original_tests - fixed_tests} test(s)"
+                        )
+                    elif fixed_tests > original_tests:
+                        logger.info(
+                            f"   ℹ️  LLM added {fixed_tests - original_tests} test(s)"
+                        )
+                    else:
+                        logger.info(f"   ℹ️  LLM modified tests without changing count")
+
+                logger.info(f"🔄 Will test the LLM-fixed code in next iteration...")
+                logger.info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
                 current_code = fixed_code
             else:
                 # No LLM available - skip to nuclear option on next attempt
-                logger.warning(f"⚠️ No LLM available - skipping to nuclear option")
+                logger.warning(f"⚠️ No LLM client available - cannot attempt LLM fix")
+                logger.warning(f"   Skipping to nuclear option...")
                 break
 
         # If we get here, all attempts failed - try absolute last resort (requires LLM)
