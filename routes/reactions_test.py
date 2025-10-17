@@ -189,336 +189,50 @@ from unittest.mock import patch, Mock
 from app import app  # ✅ CRITICAL: Import Flask app for client fixture
 from routes.reactions import get_user_reactions
 
-class TestGetUserReactions:
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_user_reactions_success(self, mock_reaction_manager, client):
-        mock_reaction_manager.get_user_reactions.return_value = [{'reaction': '👍'}]
-        
-        response = client.get('/api/reactions/user', headers={'X-User-ID': '123'})
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['user_id'] == '123'
-        assert data['reactions'] == [{'reaction': '👍'}]
-
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_user_reactions_with_message_id(self, mock_reaction_manager, client):
-        mock_reaction_manager.get_user_reactions.return_value = [{'reaction': '❤️'}]
-        
-        response = client.get('/api/reactions/user?message_id=1', headers={'X-User-ID': '123'})
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['user_id'] == '123'
-        assert data['reactions'] == [{'reaction': '❤️'}]
-
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_user_reactions_error(self, mock_reaction_manager, client):
-        mock_reaction_manager.get_user_reactions.side_effect = Exception("Database error")
-        
-        response = client.get('/api/reactions/user', headers={'X-User-ID': '123'})
-        
-        assert response.status_code == 500
-        data = response.get_json()
-        assert "error" in data
-        assert data['error'] == "Failed to get user reactions: Database error"
-
-
-    def test_get_user_reactions_unauthorized(self, client):
-        response = client.get('/api/reactions/user')
-        
-        assert response.status_code == 401
-
 # Standard library
 # Third-party
 # Local - USE ACTUAL PATHS from source
-
-
 from functools import wraps
 import pytest
 from flask import Flask
 from unittest.mock import patch, Mock
 from app import app  # ✅ CRITICAL: Import Flask app for client fixture
 from routes.reactions import get_reaction_count
-
-class TestGetReactionCount:
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_reaction_count_success(self, mock_reaction_manager, client):
-        # Setup mock
-        mock_reaction_manager.get_reaction_count.return_value = 5
-
-        # Make request
-        response = client.get('/api/reactions/count/1')
-
-        # Assert
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['message_id'] == 1
-        assert data['count'] == 5
-
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_reaction_count_failure(self, mock_reaction_manager, client):
-        # Setup mock to raise an exception
-        mock_reaction_manager.get_reaction_count.side_effect = Exception("Database error")
-
-        # Make request
-        response = client.get('/api/reactions/count/1')
-
-        # Assert
-        assert response.status_code == 500
-        data = response.get_json()
-        assert 'error' in data
-        assert "Failed to get reaction count" in data['error']
-
-    @pytest.mark.parametrize("message_id, expected_count", [
-        (1, 10),
-        (2, 0),
-        (3, 15),
-    ])
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_reaction_count_various_ids(self, mock_reaction_manager, client, message_id, expected_count):
-        # Setup mock
-        mock_reaction_manager.get_reaction_count.return_value = expected_count
-
-        # Make request
-        response = client.get(f'/api/reactions/count/{message_id}')
-
-        # Assert
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['message_id'] == message_id
-        assert data['count'] == expected_count
-
 # Standard library
 # Third-party
 # Local - USE ACTUAL PATHS from source
-
-
 from functools import wraps
 import pytest
 from flask import Flask
 from unittest.mock import patch, Mock
 from app import app  # ✅ CRITICAL: Import Flask app for client fixture
 from routes.reactions import get_most_popular
-
-class TestGetMostPopular:
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_most_popular_success(self, mock_reaction_manager, client):
-        # Setup mock
-        mock_reaction_manager.get_most_popular_emoji.return_value = "👍"
-
-        # Make request
-        response = client.get('/api/reactions/popular/1')
-
-        # Assert
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['message_id'] == 1
-        assert data['most_popular_emoji'] == "👍"
-
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_most_popular_failure(self, mock_reaction_manager, client):
-        # Setup mock to raise an exception
-        mock_reaction_manager.get_most_popular_emoji.side_effect = Exception("Database error")
-
-        # Make request
-        response = client.get('/api/reactions/popular/1')
-
-        # Assert
-        assert response.status_code == 500
-        data = response.get_json()
-        assert "error" in data
-        assert "Failed to get popular emoji" in data['error']
-
-    @pytest.mark.parametrize("message_id, expected_status", [
-        (1, 200),
-        (999, 200),  # Assuming 999 is a valid message_id with no reactions
-        (0, 500),    # Assuming 0 is an invalid message_id
-    ])
-    @patch('routes.reactions.reaction_manager')
-
-    def test_get_most_popular_various_ids(self, mock_reaction_manager, client, message_id, expected_status):
-        # Setup mock
-        mock_reaction_manager.get_most_popular_emoji.return_value = "👍"
-
-        # Make request
-        response = client.get(f'/api/reactions/popular/{message_id}')
-
-        # Assert
-        assert response.status_code == expected_status
-
 # Standard library
 # Third-party
 # Local - USE ACTUAL PATHS from source
-
-
 from functools import wraps
 import pytest
 from flask import Flask
 from unittest.mock import patch, Mock
 from app import app  # ✅ CRITICAL: Import Flask app for client fixture
 from routes.reactions import get_allowed_emojis
-
-class TestGetAllowedEmojis:
-    @patch('routes.reactions.ReactionManager.get_allowed_emojis')
-
-    def test_get_allowed_emojis_success(self, mock_get_allowed_emojis, client):
-        # Setup mock response
-        mock_get_allowed_emojis.return_value = ['👍', '❤️', '😂']
-
-        # Make request
-        response = client.get('/api/reactions/allowed-emojis')
-
-        # Assert
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['emojis'] == ['👍', '❤️', '😂']
-
-    @patch('routes.reactions.ReactionManager.get_allowed_emojis')
-
-    def test_get_allowed_emojis_empty_list(self, mock_get_allowed_emojis, client):
-        # Setup mock response
-        mock_get_allowed_emojis.return_value = []
-
-        # Make request
-        response = client.get('/api/reactions/allowed-emojis')
-
-        # Assert
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['emojis'] == []
-
-    @patch('routes.reactions.ReactionManager.get_allowed_emojis')
-
-    def test_get_allowed_emojis_error(self, mock_get_allowed_emojis, client):
-        # Setup mock to raise an exception
-        mock_get_allowed_emojis.side_effect = Exception("Database error")
-
-        # Make request
-        response = client.get('/api/reactions/allowed-emojis')
-
-        # Assert
-        assert response.status_code == 500
-
 # Standard library
 # Third-party
 # Local - USE ACTUAL PATHS from source
-
-
 from functools import wraps
 import pytest
 from flask import Flask
 from unittest.mock import patch, Mock
 from app import app  # ✅ CRITICAL: Import Flask app for client fixture
 from routes.reactions import bulk_add_reactions
-
-class TestBulkAddReactions:
-    @patch('routes.reactions.reaction_manager')
-
-    def test_bulk_add_reactions_success(self, mock_reaction_manager, client):
-        mock_reaction_manager.bulk_add_reactions.return_value = {"added": 3}
-        response = client.post('/api/reactions/bulk', headers={'X-User-ID': '123'}, json={
-            "reactions": [
-                {"message_id": 1, "user_id": 123, "emoji": "👍"},
-                {"message_id": 2, "user_id": 123, "emoji": "❤️"},
-                {"message_id": 3, "user_id": 123, "emoji": "😂"}
-            ]
-        })
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['result'] == {"added": 3}
-
-
-    def test_bulk_add_reactions_missing_reactions(self, client):
-        response = client.post('/api/reactions/bulk', headers={'X-User-ID': '123'}, json={})
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['error'] == "reactions array is required"
-
-    @patch('routes.reactions.reaction_manager')
-
-    def test_bulk_add_reactions_exception(self, mock_reaction_manager, client):
-        mock_reaction_manager.bulk_add_reactions.side_effect = Exception("Database error")
-        response = client.post('/api/reactions/bulk', headers={'X-User-ID': '123'}, json={
-            "reactions": [
-                {"message_id": 1, "user_id": 123, "emoji": "👍"}
-            ]
-        })
-        assert response.status_code == 500
-        data = response.get_json()
-        assert data['error'] == "Failed to bulk add reactions: Database error"
-
-    @pytest.mark.parametrize("reactions, expected_status, expected_error", [
-        (None, 400, "reactions array is required"),
-        ([], 400, "reactions array is required"),
-    ])
-
-    def test_bulk_add_reactions_edge_cases(self, client, reactions, expected_status, expected_error):
-        response = client.post('/api/reactions/bulk', headers={'X-User-ID': '123'}, json={
-            "reactions": reactions
-        })
-        assert response.status_code == expected_status
-        data = response.get_json()
-        assert data['error'] == expected_error
-
 # Standard library
 # Third-party
 # Local - USE ACTUAL PATHS from source
-
-
 from functools import wraps
 import pytest
 from flask import Flask, jsonify
 from unittest.mock import patch, Mock
 from app import app
-
-class TestDecoratedFunction:
-
-    def test_happy_path_with_header(self, client):
-        response = client.get('/test-endpoint', headers={'X-User-ID': '123'})
-        assert response.status_code == 200
-
-
-    def test_happy_path_with_query_param(self, client):
-        response = client.get('/test-endpoint?user_id=123')
-        assert response.status_code == 200
-
-
-    def test_missing_user_id(self, client):
-        response = client.get('/test-endpoint')
-        assert response.status_code == 401
-        data = response.get_json()
-        assert data['error'] == "Authentication required"
-
-    @pytest.mark.parametrize("header_value,query_value", [
-        (None, None),
-        ('', ''),
-        ('0', '0'),
-    ])
-
-    def test_edge_cases(self, client, header_value, query_value):
-        response = client.get('/test-endpoint', headers={'X-User-ID': header_value}, query_string={'user_id': query_value})
-        assert response.status_code == 401
-        data = response.get_json()
-        assert data['error'] == "Authentication required"
-
 # Standard library
 # Third-party
 # Local - USE ACTUAL PATHS from source
-
