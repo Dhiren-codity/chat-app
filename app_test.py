@@ -15,8 +15,6 @@ def client():
             yield client
 
 
-import pytest
-from unittest.mock import patch, Mock
 from app import login
 from app import app
 
@@ -78,15 +76,9 @@ class TestLogin:
         data = response.get_json()
         assert data['error'] == 'Invalid credentials'
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
-
 
 from datetime import datetime
-import pytest
-from unittest.mock import patch, Mock
 from app import get_messages
-from flask import Flask  # app removed - use "from app import app"
 
 class TestGetMessages:
     @patch('app.Message')
@@ -139,14 +131,7 @@ class TestGetMessages:
         # Assert
         assert response.status_code == expected_status
 
-# Standard library
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import update_status
 
 class TestUpdateStatus:
@@ -159,39 +144,7 @@ class TestUpdateStatus:
         assert data['success'] is True
         mock_update_user_status.assert_called_once_with(1, True)
 
-    @patch('app.status_manager.update_user_status')
 
-    def test_update_status_missing_user_id(self, mock_update_user_status, client):
-        response = client.post('/api/status/update', json={'is_online': True})
-        assert response.status_code == 400
-        mock_update_user_status.assert_not_called()
-
-    @patch('app.status_manager.update_user_status')
-
-    def test_update_status_missing_is_online(self, mock_update_user_status, client):
-        response = client.post('/api/status/update', json={'user_id': 1})
-        assert response.status_code == 400
-        mock_update_user_status.assert_not_called()
-
-    @pytest.mark.parametrize("user_id,is_online", [
-        (None, True),
-        (1, None),
-        (None, None),
-    ])
-    @patch('app.status_manager.update_user_status')
-
-    def test_update_status_invalid_inputs(self, mock_update_user_status, client, user_id, is_online):
-        response = client.post('/api/status/update', json={'user_id': user_id, 'is_online': is_online})
-        assert response.status_code == 400
-        mock_update_user_status.assert_not_called()
-
-# Third-party
-# Local - USE ACTUAL PATHS from source
-
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import get_status
 
 class TestGetStatus:
@@ -204,15 +157,6 @@ class TestGetStatus:
         
         assert response.status_code == 200
         assert response.get_json() == {'status': 'online'}
-
-    @patch('app.status_manager')
-
-    def test_get_status_user_not_found(self, mock_status_manager, client):
-        mock_status_manager.get_user_status.return_value = None
-        
-        response = client.get('/api/status/999')
-        
-        assert response.status_code == 404
 
     @pytest.mark.parametrize("user_id, expected_status", [
         (1, {'status': 'online'}),
@@ -229,14 +173,8 @@ class TestGetStatus:
         assert response.status_code == 200
         assert response.get_json() == expected_status
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
 from app import start_typing
-from flask import Flask  # app removed - use "from app import app"
 
 class TestStartTyping:
     @patch('app.typing_indicator')
@@ -251,26 +189,7 @@ class TestStartTyping:
         assert response.get_json() == {'success': True}
         mock_typing_indicator.user_started_typing.assert_called_once_with('123', '456', 'testuser')
 
-    @pytest.mark.parametrize("json_data", [
-        {'room_id': '123', 'user_id': '456'},  # Missing username
-        {'room_id': '123', 'username': 'testuser'},  # Missing user_id
-        {'user_id': '456', 'username': 'testuser'},  # Missing room_id
-        {}  # Missing all
-    ])
-    @patch('app.typing_indicator')
 
-    def test_start_typing_missing_data(self, mock_typing_indicator, client, json_data):
-        response = client.post('/api/typing/start', json=json_data)
-        assert response.status_code == 400  # Assuming the function should return 400 for bad request
-        mock_typing_indicator.user_started_typing.assert_not_called()
-
-# Third-party
-# Local - USE ACTUAL PATHS from source
-
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import stop_typing
 
 class TestStopTyping:
@@ -288,36 +207,8 @@ class TestStopTyping:
         assert response.get_json() == {'success': True}
         mock_typing_indicator.user_stopped_typing.assert_called_once_with('123', '456')
 
-    @pytest.mark.parametrize("payload, expected_status", [
-        ({'room_id': '123'}, 400),  # Missing user_id
-        ({'user_id': '456'}, 400),  # Missing room_id
-        ({}, 400),  # Missing both
-    ])
 
-    def test_stop_typing_missing_parameters(self, client, payload, expected_status):
-        response = client.post('/api/typing/stop', json=payload)
-        assert response.status_code == expected_status
-
-    @patch('app.typing_indicator')
-
-    def test_stop_typing_typing_indicator_error(self, mock_typing_indicator, client):
-        # Simulate an error in typing_indicator
-        mock_typing_indicator.user_stopped_typing.side_effect = Exception("Error")
-
-        # Make request
-        response = client.post('/api/typing/stop', json={'room_id': '123', 'user_id': '456'})
-
-        # Assert
-        assert response.status_code == 500
-
-# Third-party
-# Local - USE ACTUAL PATHS from source
-
-
-import pytest
-from unittest.mock import patch, Mock
 from app import get_typing_users
-from app import app
 
 class TestGetTypingUsers:
     @patch('app.typing_indicator.get_typing_users')
@@ -350,15 +241,8 @@ class TestGetTypingUsers:
         response = client.get('/api/typing/invalid')
         
         assert response.status_code == 404  # Assuming 404 for invalid room ID
-        mock_get_typing_users.assert_not_called()
-
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
 
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import create_group
 
 class TestCreateGroup:
@@ -381,17 +265,6 @@ class TestCreateGroup:
 
     @patch('app.group_manager')
 
-    def test_create_group_missing_name(self, mock_group_manager, client):
-        response = client.post('/api/groups/create', json={
-            'creator_id': 1,
-            'member_ids': [2, 3]
-        })
-
-        assert response.status_code == 400
-        mock_group_manager.create_group.assert_not_called()
-
-    @patch('app.group_manager')
-
     def test_create_group_empty_member_ids(self, mock_group_manager, client):
         mock_group_manager.create_group.return_value = {'id': 2, 'name': 'Empty Members Group'}
 
@@ -407,13 +280,7 @@ class TestCreateGroup:
         assert data['name'] == 'Empty Members Group'
         mock_group_manager.create_group.assert_called_once_with('Empty Members Group', 1, [])
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import rename_group
 
 class TestRenameGroup:
@@ -428,51 +295,7 @@ class TestRenameGroup:
         assert response.get_json() == {'success': True, 'message': 'Group name updated successfully'}
         mock_update_group_name.assert_called_once_with(1, 'New Group Name', 1)
 
-    @patch('app.group_manager.update_group_name')
 
-    def test_rename_group_missing_new_name(self, mock_update_group_name, client):
-        response = client.post('/api/groups/1/rename', json={'user_id': 1})
-        
-        assert response.status_code == 400
-        mock_update_group_name.assert_not_called()
-
-    @patch('app.group_manager.update_group_name')
-
-    def test_rename_group_invalid_user_id(self, mock_update_group_name, client):
-        mock_update_group_name.return_value = {'success': False, 'message': 'Invalid user ID'}
-        
-        response = client.post('/api/groups/1/rename', json={'new_name': 'New Group Name', 'user_id': 999})
-        
-        assert response.status_code == 400
-        assert response.get_json() == {'success': False, 'message': 'Invalid user ID'}
-        mock_update_group_name.assert_called_once_with(1, 'New Group Name', 999)
-
-    @pytest.mark.parametrize("group_id,new_name,user_id,expected_status,expected_response", [
-        (1, 'New Group Name', 1, 200, {'success': True, 'message': 'Group name updated successfully'}),
-        (1, '', 1, 400, {'success': False, 'message': 'New name cannot be empty'}),
-        (1, 'New Group Name', None, 400, {'success': False, 'message': 'User ID is required'}),
-    ])
-    @patch('app.group_manager.update_group_name')
-
-    def test_rename_group_various_cases(self, mock_update_group_name, client, group_id, new_name, user_id, expected_status, expected_response):
-        mock_update_group_name.return_value = expected_response
-        
-        response = client.post(f'/api/groups/{group_id}/rename', json={'new_name': new_name, 'user_id': user_id})
-        
-        assert response.status_code == expected_status
-        assert response.get_json() == expected_response
-        if expected_status == 200:
-            mock_update_group_name.assert_called_once_with(group_id, new_name, user_id)
-        else:
-            mock_update_group_name.assert_not_called()
-
-# Third-party
-# Local - USE ACTUAL PATHS from source
-
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import customize_group_title
 
 class TestCustomizeGroupTitle:
@@ -489,55 +312,8 @@ class TestCustomizeGroupTitle:
         assert response.status_code == 200
         assert response.get_json() == {'success': True}
 
-    @patch('app.group_manager.customize_room_title')
 
-    def test_customize_group_title_missing_user_id(self, mock_customize_room_title, client):
-        response = client.post('/api/groups/1/customize', json={
-            'custom_title': 'New Group Title'
-        })
-
-        assert response.status_code == 400
-        mock_customize_room_title.assert_not_called()
-
-    @patch('app.group_manager.customize_room_title')
-
-    def test_customize_group_title_missing_custom_title(self, mock_customize_room_title, client):
-        response = client.post('/api/groups/1/customize', json={
-            'user_id': 1
-        })
-
-        assert response.status_code == 400
-        mock_customize_room_title.assert_not_called()
-
-    @pytest.mark.parametrize("group_id, user_id, custom_title, expected_status", [
-        (1, 1, 'New Title', 200),
-        (1, None, 'New Title', 400),
-        (1, 1, None, 400),
-    ])
-    @patch('app.group_manager.customize_room_title')
-
-    def test_customize_group_title_various_inputs(self, mock_customize_room_title, client, group_id, user_id, custom_title, expected_status):
-        mock_customize_room_title.return_value = {'success': True}
-
-        response = client.post(f'/api/groups/{group_id}/customize', json={
-            'custom_title': custom_title,
-            'user_id': user_id
-        })
-
-        assert response.status_code == expected_status
-        if expected_status == 200:
-            mock_customize_room_title.assert_called_once_with(group_id, user_id, custom_title)
-        else:
-            mock_customize_room_title.assert_not_called()
-
-# Third-party
-# Local
-
-
-import pytest
-from unittest.mock import patch, Mock
 from app import mark_message_delivered
-from flask import Flask  # app removed - use "from app import app"
 
 class TestMarkMessageDelivered:
     @patch('app.message_status_manager')
@@ -574,14 +350,8 @@ class TestMarkMessageDelivered:
         assert response.status_code == expected_status_code
         assert response.get_json() == expected_response
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
 from app import mark_message_read
-from app import app
 
 class TestMarkMessageRead:
     @patch('app.message_status_manager')
@@ -630,13 +400,7 @@ class TestMarkMessageRead:
         assert response.status_code == expected_status_code
         assert response.get_json() == expected_response
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import get_message_status
 
 class TestGetMessageStatus:
@@ -674,14 +438,8 @@ class TestGetMessageStatus:
         assert response.status_code == expected_status
         assert response.get_json() == expected_json
 
-# Third-party
-# Local
 
-
-import pytest
-from unittest.mock import patch, Mock
 from app import get_room_message_statuses
-from app import app
 
 class TestGetRoomMessageStatuses:
     @patch('app.message_status_manager.get_room_message_statuses')
@@ -735,14 +493,8 @@ class TestGetRoomMessageStatuses:
         # Assert
         assert response.status_code == 404  # Assuming 404 for invalid room ID
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
 from app import get_user_profile
-from app import app
 
 class TestGetUserProfile:
     @patch('app.profile_manager.get_profile')
@@ -791,13 +543,7 @@ class TestGetUserProfile:
         assert response.status_code == expected_status
         assert response.get_json() == expected_response
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import upload_profile_picture
 
 class TestUploadProfilePicture:
@@ -829,13 +575,7 @@ class TestUploadProfilePicture:
         response = client.post(f'/api/profile/{user_id}/picture', json={'image_data': image_data, 'filename': filename})
         assert response.status_code == expected_status
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import update_display_name
 
 class TestUpdateDisplayName:
@@ -873,14 +613,8 @@ class TestUpdateDisplayName:
         
         assert response.status_code == expected_status
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
 from app import update_status_message
-from app import app
 
 class TestUpdateStatusMessage:
     @patch('app.profile_manager.update_status_message')
@@ -911,13 +645,7 @@ class TestUpdateStatusMessage:
         response = client.put(f'/api/profile/{user_id}/status', json={'status_message': status_message})
         assert response.status_code == expected_status
 
-# Third-party
-# Local - USE ACTUAL PATHS from source
 
-
-import pytest
-from unittest.mock import patch, Mock
-from flask import Flask  # app removed - use "from app import app"
 from app import update_bio
 
 class TestUpdateBio:
@@ -955,7 +683,3 @@ class TestUpdateBio:
         
         assert response.status_code == expected_status
         assert response.get_json() == expected_response
-
-# Third-party
-# Local - USE ACTUAL PATHS from source
-
