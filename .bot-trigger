@@ -1,0 +1,10 @@
+
+# Trigger Bot Re-run
+
+This commit triggers the bot to re-generate tests with the updated code from feat/auto-testing branch.
+
+Expected fixes:
+- Go tests will run from go-services/ directory
+- Java tests will run from java-services/ directory
+- Workflow will include proper cd commands
+
