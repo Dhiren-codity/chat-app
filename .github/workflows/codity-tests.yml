@@ -40,16 +40,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           echo "🔧 Tests failed, attempting auto-fix..."
-          # Download auto-fix script from codity.ai repository
-          curl -o github_auto_fix.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/github_auto_fix.py
-          # Download test_auto_fixer.py
-          mkdir -p test_generation/execution
-          curl -o test_generation/execution/test_auto_fixer.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/test_auto_fixer.py
-          # Download __init__.py files
-          curl -o test_generation/__init__.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/__init__.py
-          curl -o test_generation/execution/__init__.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/__init__.py
-          # Run auto-fix
-          python3 github_auto_fix.py app_test.py profile_manager_test.py user_validator_test.py
+          # Run local auto-fix script
+          python3 test_generation/execution/github_auto_fix.py app_test.py profile_manager_test.py user_validator_test.py
       - name: Re-run tests after auto-fix
         if: steps.test_run.outcome == 'failure'
         id: retest
@@ -99,16 +91,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           echo "🔧 Tests failed, attempting auto-fix..."
-          # Download auto-fix script from codity.ai repository
-          curl -o github_auto_fix.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/github_auto_fix.py
-          # Download test_auto_fixer.py
-          mkdir -p test_generation/execution
-          curl -o test_generation/execution/test_auto_fixer.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/test_auto_fixer.py
-          # Download __init__.py files
-          curl -o test_generation/__init__.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/__init__.py
-          curl -o test_generation/execution/__init__.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/__init__.py
-          # Run auto-fix
-          python3 github_auto_fix.py chatUtils.test.ts messageFormatter.test.js
+          # Run local auto-fix script
+          python3 test_generation/execution/github_auto_fix.py chatUtils.test.ts messageFormatter.test.js
       - name: Re-run tests after auto-fix
         if: steps.test_run.outcome == 'failure'
         id: retest
@@ -159,16 +143,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           echo "🔧 Tests failed, attempting auto-fix..."
-          # Download auto-fix script from codity.ai repository
-          curl -o github_auto_fix.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/github_auto_fix.py
-          # Download test_auto_fixer.py
-          mkdir -p test_generation/execution
-          curl -o test_generation/execution/test_auto_fixer.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/test_auto_fixer.py
-          # Download __init__.py files
-          curl -o test_generation/__init__.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/__init__.py
-          curl -o test_generation/execution/__init__.py https://raw.githubusercontent.com/codity-ai/codity.ai/feat/auto-testing/test_generation/execution/__init__.py
-          # Run auto-fix
-          python3 github_auto_fix.py go-services/message_validator_test.go
+          # Run local auto-fix script
+          python3 test_generation/execution/github_auto_fix.py go-services/message_validator_test.go
       - name: Re-run tests after auto-fix
         if: steps.test_run.outcome == 'failure'
         id: retest
