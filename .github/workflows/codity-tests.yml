@@ -1,0 +1,62 @@
+name: Codity AI - Run Generated Tests
+
+on:
+  pull_request:
+    branches: ['**']
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test-python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-cov pytest-asyncio openai python-dotenv
+          # Fix Flask ecosystem compatibility issues
+          pip install 'sqlalchemy<2.0.0' 'flask-sqlalchemy>=3.0.0' || true
+          pip install 'werkzeug<3.0.0' 'flask>=2.3.0,<3.0.0' || true
+      - name: Install project dependencies
+        run: |
+          pip install -r requirements.txt || true
+          pip install -r requirements-dev.txt || true
+      - name: Run tests
+        id: test_run
+        continue-on-error: true
+        run: pytest app_test.py group_manager_test.py message_status_test.py status_manager_test.py typing_indicator_test.py -v
+      - name: Auto-fix failing tests
+        if: steps.test_run.outcome == 'failure'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "🔧 Tests failed, attempting auto-fix..."
+          python3 test_generation/execution/github_auto_fix.py app_test.py group_manager_test.py message_status_test.py status_manager_test.py typing_indicator_test.py
+      - name: Re-run tests after auto-fix
+        if: steps.test_run.outcome == 'failure'
+        id: retest
+        continue-on-error: true
+        run: pytest app_test.py group_manager_test.py message_status_test.py status_manager_test.py typing_indicator_test.py -v
+      - name: Commit auto-fixed tests
+        if: steps.test_run.outcome == 'failure' && steps.retest.outcome == 'success'
+        run: |
+          git config user.name "Codity AI"
+          git config user.email "bot@codity.ai"
+          git add app_test.py group_manager_test.py message_status_test.py status_manager_test.py typing_indicator_test.py
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Fix failing tests"
+            # Pull and rebase to handle any remote changes
+            git pull --rebase origin ${{ github.head_ref }} || true
+            # Push with force-with-lease to safely overwrite
+            git push --force-with-lease origin HEAD:${{ github.head_ref }}
+          fi
