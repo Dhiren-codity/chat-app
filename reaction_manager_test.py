@@ -1,0 +1,559 @@
+"""
+Auto-generated tests using LLM and RAG
+"""
+
+from flask import Flask
+from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from reaction_manager import ReactionManager
+
+from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, MagicMock
+import pytest
+
+
+
+@pytest.fixture
+def client():
+    """Flask test client with app context."""
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
+
+
+from unittest.mock import MagicMock, patch
+from flask_sqlalchemy import SQLAlchemy
+import pytest
+from reaction_manager import ReactionManager
+from unittest.mock import MagicMock
+
+# Mock database session for testing
+
+@pytest.fixture
+def mock_query(mocker):
+    """Mock SQLAlchemy query object."""
+    mock_query = MagicMock()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mock_query.first.return_value = None
+    mock_query.count.return_value = 0
+    return mock_query
+class MockDBSession:
+    pass
+    (None, 'default_db'),  # Assuming 'default_db' is the default db used in the actual implementation
+    (MockDBSession(), MockDBSession()),  # Custom db session provided
+
+    def test_reaction_manager_init(db_session, expected_db, mocker):
+    # Mock the default db if db_session is None
+        if db_session is None:
+        mocker.patch('reaction_manager.db', 'default_db')
+    manager = ReactionManager(db_session=db_session)
+    assert manager.db == expected_db
+
+    def test_reaction_manager_init_with_invalid_db_session(mocker):
+    # Mock the default db
+    mocker.patch('reaction_manager.db', 'default_db')
+    with pytest.raises(TypeError):
+        # Assuming that passing an invalid type should raise a TypeError
+        ReactionManager(db_session="invalid_session")
+
+    def test_reaction_manager_init_edge_case_empty_db_session(mocker):
+    # Mock the default db
+    mocker.patch('reaction_manager.db', 'default_db')
+    manager = ReactionManager(db_session=[])
+    assert manager.db == []
+
+    def test_reaction_manager_init_edge_case_none_db_session(mocker):
+    # Mock the default db
+    mocker.patch('reaction_manager.db', 'default_db')
+    manager = ReactionManager(db_session=None)
+    assert manager.db == 'default_db'
+
+    @pytest.fixture
+    def mocker():
+    """Mock fixture for testing."""
+
+
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, jsonify, request
+import pytest
+from unittest.mock import MagicMock
+from reaction_manager import ReactionManager
+from flask import Flask
+
+    @pytest.fixture
+    def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    @pytest.fixture
+    def mock_query(mocker):
+    """Mock SQLAlchemy query object."""
+    mock_query = MagicMock()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mock_query.first.return_value = None
+    mock_query.count.return_value = 0
+    @pytest.fixture
+    def reaction_manager():
+    manager = ReactionManager()
+    manager.db = MagicMock()
+    manager.ALLOWED_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏']
+
+
+    def test_add_reaction_happy_path(reaction_manager, message_id, user_id, emoji, expected):
+    # Mocking the database query and commit
+    reaction_manager.db.session.add = MagicMock()
+    reaction_manager.db.session.commit = MagicMock()
+    Message.query.get = MagicMock(return_value=True)
+    MessageReaction.query.filter_by().first = MagicMock(return_value=None if expected["success"] else MagicMock(id=1))
+    result = reaction_manager.add_reaction(message_id, user_id, emoji)
+    assert result["success"] == expected["success"]
+    assert result["message"] == expected["message"]
+
+    def test_add_reaction_invalid_emoji(reaction_manager, message_id, user_id, emoji):
+    with pytest.raises(ValueError, match=f"Emoji '{emoji}' not allowed"):
+        reaction_manager.add_reaction(message_id, user_id, emoji)
+
+    def test_add_reaction_message_not_found(reaction_manager, message_id, user_id, emoji):
+    Message.query.get = MagicMock(return_value=None)
+    with pytest.raises(ValueError, match=f"Message {message_id} not found"):
+        reaction_manager.add_reaction(message_id, user_id, emoji)
+
+    def test_add_reaction_database_error(reaction_manager, message_id, user_id, emoji):
+    Message.query.get = MagicMock(return_value=True)
+    MessageReaction.query.filter_by().first = MagicMock(return_value=None)
+    reaction_manager.db.session.add = MagicMock()
+    reaction_manager.db.session.commit = MagicMock(side_effect=Exception("DB Error"))
+    with pytest.raises(Exception, match="Failed to add reaction: DB Error"):
+        reaction_manager.add_reaction(message_id, user_id, emoji)
+
+
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, jsonify, request
+import pytest
+from unittest.mock import MagicMock, patch
+from reaction_manager import ReactionManager
+from flask import Flask
+
+    @pytest.fixture
+    def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    @pytest.fixture
+    def mock_query(mocker):
+    """Mock SQLAlchemy query object."""
+    mock_query = MagicMock()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mock_query.first.return_value = None
+    mock_query.count.return_value = 0
+    @pytest.fixture
+    def reaction_manager():
+    manager = ReactionManager()
+    manager.db = MagicMock()
+
+    (1, 1, '👍', True, {"success": True, "message": "Reaction removed"}),  # Happy path
+    (1, 1, '👍', False, {"success": False, "message": "Reaction not found"}),  # Reaction not found
+    (1, 1, '🔥', True, {"success": True, "message": "Reaction removed"}),  # Edge case: different emoji
+
+    def test_remove_reaction(reaction_manager, message_id, user_id, emoji, reaction_exists, expected):
+    with patch('reaction_manager.MessageReaction.query.filter_by') as mock_query:
+        mock_reaction = MagicMock() if reaction_exists else None
+        mock_query.return_value.first.return_value = mock_reaction
+        result = reaction_manager.remove_reaction(message_id, user_id, emoji)
+        if reaction_exists:
+            reaction_manager.db.session.delete.assert_called_once_with(mock_reaction)
+            reaction_manager.db.session.commit.assert_called_once()
+        else:
+            reaction_manager.db.session.delete.assert_not_called()
+            reaction_manager.db.session.commit.assert_not_called()
+        assert result == expected
+
+    def test_remove_reaction_exception_handling(reaction_manager):
+    with patch('reaction_manager.MessageReaction.query.filter_by') as mock_query:
+        mock_reaction = MagicMock()
+        mock_query.return_value.first.return_value = mock_reaction
+        reaction_manager.db.session.delete.side_effect = Exception("DB error")
+        with pytest.raises(Exception, match="Failed to remove reaction: DB error"):
+            reaction_manager.remove_reaction(1, 1, '👍')
+        reaction_manager.db.session.rollback.assert_called_once()
+
+
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, jsonify, request
+import pytest
+from unittest.mock import MagicMock
+from reaction_manager import ReactionManager
+from flask import Flask
+
+    @pytest.fixture
+    def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    @pytest.fixture
+    def mock_query(mocker):
+    """Mock SQLAlchemy query object."""
+    mock_query = MagicMock()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mock_query.first.return_value = None
+    mock_query.count.return_value = 0
+    @pytest.fixture
+    def reaction_manager():
+
+# Mocking the MessageReaction model
+    class MessageReaction:
+        def __init__(self, message_id, user_id, emoji):
+        self.message_id = message_id
+        self.user_id = user_id
+        self.emoji = emoji
+        @staticmethod
+        def query():
+
+        def test_get_message_reactions_happy_path(reaction_manager, message_id, reactions, expected):
+    MessageReaction.query.filter_by.return_value.all.return_value = reactions
+    result = reaction_manager.get_message_reactions(message_id)
+    assert result == expected
+
+        def test_get_message_reactions_edge_case(reaction_manager, message_id, reactions):
+    MessageReaction.query.filter_by.return_value.all.return_value = reactions
+    result = reaction_manager.get_message_reactions(message_id)
+    assert len(result) == 2
+    assert any(r['emoji'] == '🔥' and r['count'] == 2 for r in result)
+
+        def test_get_message_reactions_no_reactions(reaction_manager, message_id):
+    MessageReaction.query.filter_by.return_value.all.return_value = []
+    result = reaction_manager.get_message_reactions(message_id)
+    assert result == []
+
+
+from flask_sqlalchemy import SQLAlchemy
+import pytest
+from unittest.mock import MagicMock
+from reaction_manager import ReactionManager
+
+        @pytest.fixture
+        def mock_query(mocker):
+    """Mock SQLAlchemy query object."""
+    mock_query = MagicMock()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mock_query.first.return_value = None
+    mock_query.count.return_value = 0
+        @pytest.fixture
+        def reaction_manager():
+
+# Mocking the MessageReaction model
+        class MockMessageReaction:
+            def __init__(self, id, user_id, message_id, emoji, created_at):
+        self.id = id
+        self.user_id = user_id
+        self.message_id = message_id
+        self.emoji = emoji
+        self.created_at = created_at
+            @staticmethod
+            def query():
+    (1, None, [
+        {"reaction_id": 1, "message_id": 101, "emoji": "👍", "created_at": "2023-10-01T12:00:00"},
+        {"reaction_id": 2, "message_id": 102, "emoji": "❤️", "created_at": "2023-10-02T13:00:00"}
+    ]),
+    (1, 101, [
+        {"reaction_id": 1, "message_id": 101, "emoji": "👍", "created_at": "2023-10-01T12:00:00"}
+    ]),
+    (2, None, []),  # Edge case: User with no reactions
+
+            def test_get_user_reactions(reaction_manager, user_id, message_id, expected):
+    # Mocking the query results
+    mock_query = MockMessageReaction.query()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.all.return_value = [
+        MockMessageReaction(1, 1, 101, "👍", MagicMock(isoformat=lambda: "2023-10-01T12:00:00")),
+        MockMessageReaction(2, 1, 102, "❤️", MagicMock(isoformat=lambda: "2023-10-02T13:00:00")),
+    ] if user_id == 1 else []
+    # Injecting the mock query into the method
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr('reaction_manager.MessageReaction.query', mock_query)
+        result = reaction_manager.get_user_reactions(user_id, message_id)
+        assert result == expected
+    (None, None),  # Error case: Invalid user_id
+
+            def test_get_user_reactions_invalid_user_id(reaction_manager, user_id, message_id):
+    with pytest.raises(TypeError):
+        reaction_manager.get_user_reactions(user_id, message_id)
+
+
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, jsonify, request
+import pytest
+from unittest.mock import MagicMock
+from reaction_manager import ReactionManager
+from flask import Flask
+
+            @pytest.fixture
+            def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+            @pytest.fixture
+            def mock_query(mocker):
+    """Mock SQLAlchemy query object."""
+    mock_query = MagicMock()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mock_query.first.return_value = None
+    mock_query.count.return_value = 0
+            @pytest.fixture
+            def reaction_manager():
+    manager = ReactionManager()
+    manager.add_reaction = MagicMock(return_value={"status": "success"})
+    manager.remove_reaction = MagicMock(return_value={"status": "success"})
+
+    (1, 1, '👍', None, "added"),  # Happy path: Add reaction
+    (1, 1, '👍', True, "removed"),  # Happy path: Remove reaction
+    (1, 1, '🚀', None, "error"),  # Error case: Emoji not allowed
+    (1, 1, '👍', False, "added"),  # Edge case: Reaction does not exist
+    (1, 1, '👍', True, "removed"),  # Edge case: Reaction exists
+
+            def test_toggle_reaction(reaction_manager, message_id, user_id, emoji, existing, expected_action):
+    # Mock the query to simulate existing reaction
+    MessageReaction.query.filter_by = MagicMock(return_value=MagicMock(first=MagicMock(return_value=existing)))
+    if expected_action == "error":
+        with pytest.raises(ValueError):
+            reaction_manager.toggle_reaction(message_id, user_id, emoji)
+    else:
+        result = reaction_manager.toggle_reaction(message_id, user_id, emoji)
+        assert result["action"] == expected_action
+
+
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, jsonify, request
+import pytest
+from unittest.mock import MagicMock
+from reaction_manager import ReactionManager
+from flask import Flask
+
+            @pytest.fixture
+            def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+            @pytest.fixture
+            def mock_query(mocker):
+    """Mock SQLAlchemy query object."""
+    mock_query = MagicMock()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mock_query.first.return_value = None
+    mock_query.count.return_value = 0
+            @pytest.fixture
+            def reaction_manager():
+
+    (1, 5),  # Happy path: message with 5 reactions
+    (2, 0),  # Edge case: message with 0 reactions
+    (3, 1),  # Edge case: message with 1 reaction
+
+            def test_get_reaction_count_happy_path(reaction_manager, message_id, expected_count):
+    # Mock the query and count method
+    MessageReaction = MagicMock()
+    MessageReaction.query.filter_by.return_value.count.return_value = expected_count
+    # Inject the mock into the method
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr('reaction_manager.MessageReaction', MessageReaction)
+        assert reaction_manager.get_reaction_count(message_id) == expected_count
+
+            def test_get_reaction_count_error_case(reaction_manager):
+    # Mock the query to raise an exception
+    MessageReaction = MagicMock()
+    MessageReaction.query.filter_by.side_effect = Exception("Database error")
+    # Inject the mock into the method
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr('reaction_manager.MessageReaction', MessageReaction)
+        with pytest.raises(Exception, match="Database error"):
+            reaction_manager.get_reaction_count(999)
+
+
+from unittest.mock import MagicMock, patch
+from flask import Flask, jsonify, request
+import pytest
+from reaction_manager import ReactionManager
+from flask import Flask
+from unittest.mock import MagicMock
+
+            @pytest.fixture
+            def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+            @pytest.fixture
+            def reaction_manager():
+
+    (1, [{'emoji': '👍', 'count': 5}, {'emoji': '❤️', 'count': 3}], '👍'),  # Happy path
+    (2, [], None),  # No reactions
+    (3, [{'emoji': '😂', 'count': 2}, {'emoji': '😂', 'count': 2}], '😂'),  # Tie case
+    (4, [{'emoji': '🔥', 'count': 0}], None),  # Edge case: zero count
+    (5, [{'emoji': '👏', 'count': 1}], '👏'),  # Single reaction
+
+            def test_get_most_popular_emoji(reaction_manager, message_id, reactions, expected, mocker):
+    mocker.patch.object(reaction_manager, 'get_message_reactions', return_value=reactions)
+    result = reaction_manager.get_most_popular_emoji(message_id)
+    assert result == expected
+
+            @pytest.fixture
+            def mocker():
+    """Mock fixture for testing."""
+
+
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, jsonify, request
+import pytest
+from unittest.mock import MagicMock
+from flask import Flask
+from reaction_manager import ReactionManager
+
+            @pytest.fixture
+            def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+            @pytest.fixture
+            def mock_query(mocker):
+    """Mock SQLAlchemy query object."""
+    mock_query = MagicMock()
+    mock_query.filter_by.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mock_query.first.return_value = None
+    mock_query.count.return_value = 0
+            @pytest.fixture
+            def reaction_manager():
+
+# Assuming MessageReaction is a SQLAlchemy model
+            class MessageReaction:
+                @staticmethod
+                def query():
+    (1, 1, None, True),  # Happy path: user has reacted
+    (1, 2, '👍', False),  # Error case: user has not reacted with specific emoji
+    (1, 1, '🔥', True),   # Edge case: user reacted with specific emoji
+    (2, 1, None, False),  # Edge case: no reaction for different message
+
+                def test_has_user_reacted(reaction_manager, message_id, user_id, emoji, expected):
+    # Mocking the query behavior
+    mock_query = MessageReaction.query.filter_by.return_value
+    if expected:
+        mock_query.first.return_value = MagicMock()
+    else:
+        mock_query.first.return_value = None
+    result = reaction_manager.has_user_reacted(message_id, user_id, emoji)
+    assert result == expected
+
+
+from flask import Flask, jsonify, request
+import pytest
+from reaction_manager import ReactionManager
+from flask import Flask
+
+                @pytest.fixture
+                def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+                @pytest.fixture
+                def reaction_manager():
+
+    # Happy path: all reactions are added successfully
+    (
+        [
+            {'message_id': 1, 'user_id': 1, 'emoji': '👍'},
+            {'message_id': 2, 'user_id': 2, 'emoji': '❤️'}
+        ],
+        {'total': 2, 'added': 2, 'failed': 0, 'errors': []}
+    ),
+    # Error case: one reaction with disallowed emoji
+    (
+        [
+            {'message_id': 1, 'user_id': 1, 'emoji': '👍'},
+            {'message_id': 2, 'user_id': 2, 'emoji': '🚀'}
+        ],
+        {'total': 2, 'added': 1, 'failed': 1, 'errors': ["Emoji '🚀' not allowed."]}
+    ),
+    # Edge case: empty list of reactions
+    (
+        [],
+        {'total': 0, 'added': 0, 'failed': 0, 'errors': []}
+    ),
+    # Edge case: all reactions fail due to disallowed emojis
+    (
+        [
+            {'message_id': 1, 'user_id': 1, 'emoji': '🚀'},
+            {'message_id': 2, 'user_id': 2, 'emoji': '🌟'}
+        ],
+        {'total': 2, 'added': 0, 'failed': 2, 'errors': ["Emoji '🚀' not allowed.", "Emoji '🌟' not allowed."]}
+    ),
+
+                def test_bulk_add_reactions(reaction_manager, reactions, expected):
+    result = reaction_manager.bulk_add_reactions(reactions)
+    assert result == expected
+
+
+from flask import Flask, jsonify, request
+import pytest
+from reaction_manager import ReactionManager
+from flask import Flask
+
+                @pytest.fixture
+                def app():
+    """Flask application fixture."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+                @pytest.fixture
+                def reaction_manager():
+
+
+                def test_get_allowed_emojis_happy_path(reaction_manager, expected_emojis):
+    assert reaction_manager.get_allowed_emojis() == expected_emojis
+
+                def test_get_allowed_emojis_no_side_effects(reaction_manager, modify_emojis):
+    original_emojis = reaction_manager.get_allowed_emojis()
+    modified_emojis = reaction_manager.get_allowed_emojis()
+    modified_emojis.extend(modify_emojis)
+    assert reaction_manager.get_allowed_emojis() == original_emojis
+
+                def test_get_allowed_emojis_return_type(reaction_manager, expected_type):
+    assert isinstance(reaction_manager.get_allowed_emojis(), expected_type)
+
+                def test_get_allowed_emojis_length(reaction_manager, expected_length):
+    assert len(reaction_manager.get_allowed_emojis()) == expected_length
+
+                def test_get_allowed_emojis_unexpected_emoji(reaction_manager, unexpected_emoji):
+    assert unexpected_emoji not in reaction_manager.get_allowed_emojis()
+
