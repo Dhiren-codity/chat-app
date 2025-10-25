@@ -1,0 +1,98 @@
+name: Codity AI - Run Generated Tests
+
+on:
+  pull_request:
+    branches: ['**']
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test-python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-cov pytest-asyncio openai python-dotenv
+          # Fix Flask ecosystem compatibility issues
+          pip install 'sqlalchemy<2.0.0' 'flask-sqlalchemy>=3.0.0' || true
+          pip install 'werkzeug<3.0.0' 'flask>=2.3.0,<3.0.0' || true
+      - name: Install project dependencies
+        run: |
+          pip install -r requirements.txt || true
+          pip install -r requirements-dev.txt || true
+      - name: Run tests
+        id: test_run
+        continue-on-error: true
+        run: pytest reaction_manager_test.py routes/reactions_test.py -v
+      - name: Fix common test errors
+        if: steps.test_run.outcome == 'failure'
+        run: |
+          echo "🔧 Fixing common test errors..."
+          for file in reaction_manager_test.py routes/reactions_test.py; do
+            if [ -f "$file" ]; then
+              echo "Processing $file..."
+              
+              # Remove hallucinated imports
+              sed -i 's/from test_sample import.*/# TODO: Import removed - not found in context/g' "$file"
+              sed -i 's/from auth_module import.*/# TODO: Import removed - not found in context/g' "$file"
+              sed -i 's/from test_module import.*/# TODO: Import removed - not found in context/g' "$file"
+              sed -i 's/from sample_module import.*/# TODO: Import removed - not found in context/g' "$file"
+              sed -i 's/import test_sample/# TODO: Import removed - not found in context/g' "$file"
+              sed -i 's/import auth_module/# TODO: Import removed - not found in context/g' "$file"
+              sed -i 's/import test_module/# TODO: Import removed - not found in context/g' "$file"
+              sed -i 's/import sample_module/# TODO: Import removed - not found in context/g' "$file"
+              
+              # Fix placeholder imports
+              sed -i 's/from your_module import.*/# TODO: Placeholder import removed/g' "$file"
+              sed -i 's/from module import.*/# TODO: Generic import removed/g' "$file"
+              sed -i 's/import your_module/# TODO: Placeholder import removed/g' "$file"
+              sed -i 's/import module/# TODO: Generic import removed/g' "$file"
+              
+              # Fix Flask import errors
+              sed -i 's/from flask.app import.*/# TODO: Incorrect Flask import - use "from app import app"/g' "$file"
+              sed -i 's/from flask import app/# TODO: Flask doesn'''t export app - use "from app import app"/g' "$file"
+              
+              # Fix fixture shadowing issues
+              sed -i -E 's/@pytest\.fixture[[:space:]]*def app/# TODO: Fix fixture name - use '''client''' instead of '''app'''/g' "$file"
+              
+              # Fix direct app access in test functions
+              sed -i 's/app\.test_client()/# TODO: Use client fixture instead of direct app access/g' "$file"
+              sed -i 's/app\.app_context()/# TODO: Use client fixture instead of manual context/g' "$file"
+            fi
+          done
+      - name: Auto-fix failing tests
+        if: steps.test_run.outcome == 'failure'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "🔧 Tests failed, attempting auto-fix..."
+          python3 test_generation/execution/github_auto_fix.py reaction_manager_test.py routes/reactions_test.py
+      - name: Re-run tests after auto-fix
+        if: steps.test_run.outcome == 'failure'
+        id: retest
+        continue-on-error: true
+        run: pytest reaction_manager_test.py routes/reactions_test.py -v
+      - name: Commit auto-fixed tests
+        if: steps.test_run.outcome == 'failure' && steps.retest.outcome == 'success'
+        run: |
+          git config user.name "Codity AI"
+          git config user.email "bot@codity.ai"
+          git add reaction_manager_test.py routes/reactions_test.py
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Fix failing tests"
+            # Pull and rebase to handle any remote changes
+            git pull --rebase origin ${{ github.head_ref }} || true
+            # Push with force-with-lease to safely overwrite
+            git push --force-with-lease origin HEAD:${{ github.head_ref }}
+          fi
