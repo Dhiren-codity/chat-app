@@ -48,9 +48,7 @@ jobs:
         continue-on-error: true
         run: pytest app_test.py profile_manager_test.py user_validator_test.py -v
       - name: Commit auto-fixed tests
-        # CRITICAL FIX: Commit if ANY auto-fix happened, not just if tests fully pass
-        # This allows incremental improvements (90 passing -> keep those 90)
-        if: steps.test_run.outcome == 'failure'
+        if: steps.test_run.outcome == 'failure' && steps.retest.outcome == 'success'
         run: |
           git config user.name "Codity AI"
           git config user.email "bot@codity.ai"
@@ -62,7 +60,9 @@ jobs:
 
             🤖 Generated with Codity AI
             "
-            # CRITICAL FIX: No git pull --rebase - just push with force-with-lease
+            # Pull and rebase to handle any remote changes
+            git pull --rebase origin ${{ github.head_ref }} || true
+            # Push with force-with-lease to safely overwrite
             git push --force-with-lease origin HEAD:${{ github.head_ref }}
           fi
 
@@ -99,8 +99,7 @@ jobs:
         continue-on-error: true
         run: npm test chatUtils.test.ts messageFormatter.test.js
       - name: Commit auto-fixed tests
-        # CRITICAL FIX: Commit if ANY auto-fix happened
-        if: steps.test_run.outcome == 'failure'
+        if: steps.test_run.outcome == 'failure' && steps.retest.outcome == 'success'
         run: |
           git config user.name "Codity AI"
           git config user.email "bot@codity.ai"
@@ -109,7 +108,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "fix: Auto-fixed failing JavaScript/TypeScript tests"
-            # CRITICAL FIX: No git pull --rebase - just push
+            git pull --rebase origin ${{ github.head_ref }} || true
             git push --force-with-lease origin HEAD:${{ github.head_ref }}
           fi
 
@@ -151,18 +150,72 @@ jobs:
         continue-on-error: true
         run: |
           cd go-services
+          go mod download
           go test ./... -v
       - name: Commit auto-fixed tests
-        # CRITICAL FIX: Commit if ANY auto-fix happened
-        if: steps.test_run.outcome == 'failure'
+        if: steps.test_run.outcome == 'failure' && steps.retest.outcome == 'success'
         run: |
           git config user.name "Codity AI"
           git config user.email "bot@codity.ai"
           git add go-services/message_validator_test.go
+          # Also add go.mod and go.sum if they were updated
+          git add */go.mod */go.sum go.mod go.sum 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
             git commit -m "fix: Auto-fixed failing Go tests"
-            # CRITICAL FIX: No git pull --rebase - just push
+            git pull --rebase origin ${{ github.head_ref }} || true
+            git push --force-with-lease origin HEAD:${{ github.head_ref }}
+          fi
+
+  test-java:
+    name: Java Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python dependencies for auto-fix
+        run: |
+          pip install openai anthropic || true
+      - name: Run Java tests
+        id: test_run
+        continue-on-error: true
+        run: |
+          cd java-services
+          mvn test
+      - name: Auto-fix failing tests
+        if: steps.test_run.outcome == 'failure'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          echo "🔧 Tests failed, attempting auto-fix..."
+          python3 test_generation/execution/github_auto_fix.py java-services/src/test/java/com/chatapp/services/UserServiceTest.java
+      - name: Re-run tests after auto-fix
+        if: steps.test_run.outcome == 'failure'
+        id: retest
+        continue-on-error: true
+        run: |
+          cd java-services
+          mvn test
+      - name: Commit auto-fixed tests
+        if: steps.test_run.outcome == 'failure' && steps.retest.outcome == 'success'
+        run: |
+          git config user.name "Codity AI"
+          git config user.email "bot@codity.ai"
+          git add java-services/src/test/java/com/chatapp/services/UserServiceTest.java
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "fix: Auto-fixed failing Java tests"
+            git pull --rebase origin ${{ github.head_ref }} || true
             git push --force-with-lease origin HEAD:${{ github.head_ref }}
           fi
